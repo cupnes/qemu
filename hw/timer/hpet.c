@@ -184,6 +184,8 @@ static inline uint64_t hpet_calculate_diff(HPETTimer *t, uint64_t current)
 
 static void update_irq(struct HPETTimer *timer, int set)
 {
+    DPRINTF("qemu: update_irq: begin\n");
+
     uint64_t mask;
     HPETState *s;
     int route;
@@ -200,7 +202,9 @@ static void update_irq(struct HPETTimer *timer, int set)
     s = timer->state;
     mask = 1 << timer->tn;
     if (!set || !timer_enabled(timer) || !hpet_enabled(timer->state)) {
+        DPRINTF("qemu: update_irq: A: %#lx ->", s->isr);
         s->isr &= ~mask;
+        DPRINTF("%#lx\n", s->isr);
         if (!timer_fsb_route(timer)) {
             qemu_irq_lower(s->irqs[route]);
         }
@@ -209,18 +213,26 @@ static void update_irq(struct HPETTimer *timer, int set)
                              timer->fsb & 0xffffffff, MEMTXATTRS_UNSPECIFIED,
                              NULL);
     } else if (timer->config & HPET_TN_TYPE_LEVEL) {
+        DPRINTF("qemu: update_irq: B: %#lx ->", s->isr);
         s->isr |= mask;
+        DPRINTF("%#lx\n", s->isr);
         qemu_irq_raise(s->irqs[route]);
     } else {
+        DPRINTF("qemu: update_irq: C: %#lx ->", s->isr);
         s->isr &= ~mask;
+        DPRINTF("%#lx\n", s->isr);
         qemu_irq_pulse(s->irqs[route]);
     }
 
     if (set && !timer_enabled(timer) && hpet_enabled(timer->state)
         && !timer_fsb_route(timer)
         && timer->config & HPET_TN_TYPE_LEVEL) {
+        DPRINTF("qemu: update_irq: D: %#lx ->", s->isr);
         s->isr |= mask;
+        DPRINTF("%#lx\n", s->isr);
     }
+
+    DPRINTF("qemu: update_irq: end\n");
 }
 
 static int hpet_pre_save(void *opaque)
@@ -521,7 +533,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
 
     /*address range of all TN regs*/
     if (index >= 0x100 && index <= 0x3ff) {
-        uint8_t timer_id = (addr - 0x100) / 0x20;
+        uint8_t timer_id = (addr - 0x100) / 0x20; /* (0x108 - 0x100) / 0x20 = 8 / 32 = 0 */
         HPETTimer *timer = &s->timer[timer_id];
 
         DPRINTF("qemu: hpet_ram_writel timer_id = %#x\n", timer_id);
@@ -529,7 +541,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
             DPRINTF("qemu: timer id out of range\n");
             return;
         }
-        switch ((addr - 0x100) % 0x20) {
+        switch ((addr - 0x100) % 0x20) { /* (0x108 - 0x100) % 0x20 = 8 % 32 = 8 */
         case HPET_TN_CFG:
             DPRINTF("qemu: hpet_ram_writel HPET_TN_CFG\n");
             if (activating_bit(old_val, new_val, HPET_TN_FSB_ENABLE)) {
@@ -551,8 +563,9 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
         case HPET_TN_CFG + 4: // Interrupt capabilities
             DPRINTF("qemu: invalid HPET_TN_CFG+4 write\n");
             break;
-        case HPET_TN_CMP: // comparator register
+        case HPET_TN_CMP: // comparator register	/* = 8 */
             DPRINTF("qemu: hpet_ram_writel HPET_TN_CMP\n");
+            DPRINTF("qemu: hpet_ram_writel HPET_TN_CMP begin: ISR=%#lx\n", s->isr);
             if (timer->config & HPET_TN_32BIT) {
                 new_val = (uint32_t)new_val;
             }
@@ -573,6 +586,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
             if (hpet_enabled(s)) {
                 hpet_set_timer(timer);
             }
+            DPRINTF("qemu: hpet_ram_writel HPET_TN_CMP end: ISR=%#lx\n", s->isr);
             break;
         case HPET_TN_CMP + 4: // comparator register high order
             DPRINTF("qemu: hpet_ram_writel HPET_TN_CMP + 4\n");
