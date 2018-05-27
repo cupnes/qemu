@@ -36,7 +36,7 @@
 #include "hw/timer/mc146818rtc.h"
 #include "hw/timer/i8254.h"
 
-//#define HPET_DEBUG
+#define HPET_DEBUG
 #ifdef HPET_DEBUG
 #define DPRINTF printf
 #else
@@ -420,7 +420,8 @@ static void hpet_del_timer(HPETTimer *t)
     update_irq(t, 0);
 }
 
-#ifdef HPET_DEBUG
+/* #ifdef HPET_DEBUG */
+#if 0
 static uint32_t hpet_ram_readb(void *opaque, hwaddr addr)
 {
     printf("qemu: hpet_read b at %" PRIx64 "\n", addr);
