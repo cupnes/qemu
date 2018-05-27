@@ -215,6 +215,12 @@ static void update_irq(struct HPETTimer *timer, int set)
         s->isr &= ~mask;
         qemu_irq_pulse(s->irqs[route]);
     }
+
+    if (set && !timer_enabled(timer) && hpet_enabled(timer->state)
+        && !timer_fsb_route(timer)
+        && timer->config & HPET_TN_TYPE_LEVEL) {
+        s->isr |= mask;
+    }
 }
 
 static int hpet_pre_save(void *opaque)
