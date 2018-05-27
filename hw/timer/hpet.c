@@ -513,7 +513,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
     HPETState *s = opaque;
     uint64_t old_val, new_val, val, index;
 
-    DPRINTF("qemu: Enter hpet_ram_writel at %" PRIx64 " = %#x\n", addr, value);
+    DPRINTF("qemu: Enter hpet_ram_writel at %" PRIx64 " = %#lx\n", addr, value);
     index = addr;
     old_val = hpet_ram_read(opaque, addr, 4);
     new_val = value;
@@ -655,7 +655,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
             }
             s->hpet_counter =
                 (s->hpet_counter & 0xffffffff00000000ULL) | value;
-            DPRINTF("qemu: HPET counter written. ctr = %#x -> %" PRIx64 "\n",
+            DPRINTF("qemu: HPET counter written. ctr = %#lx -> %" PRIx64 "\n",
                     value, s->hpet_counter);
             break;
         case HPET_COUNTER + 4:
@@ -664,7 +664,7 @@ static void hpet_ram_write(void *opaque, hwaddr addr,
             }
             s->hpet_counter =
                 (s->hpet_counter & 0xffffffffULL) | (((uint64_t)value) << 32);
-            DPRINTF("qemu: HPET counter + 4 written. ctr = %#x -> %" PRIx64 "\n",
+            DPRINTF("qemu: HPET counter + 4 written. ctr = %#lx -> %" PRIx64 "\n",
                     value, s->hpet_counter);
             break;
         default:
